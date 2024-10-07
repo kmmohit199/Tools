@@ -1,0 +1,22 @@
+@echo off
+setlocal
+
+rem Define input and output files
+set userList=userlist.txt
+set outputFile=output.txt
+
+rem Clear output file
+echo Group Memberships > %outputFile%
+
+rem Read each user from the user list
+for /f "delims=" %%u in (%userList%) do (
+    echo Checking groups for user: %%u
+    echo %%u >> %outputFile%
+    
+    rem Query groups using PowerShell
+    powershell -Command "Get-ADUser '%%u' -Property MemberOf | Select-Object -ExpandProperty MemberOf | ForEach-Object { $_ } >> %outputFile%"
+    
+    echo. >> %outputFile%  rem Add a blank line for readability
+)
+
+endlocal

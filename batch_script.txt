@@ -1,0 +1,19 @@
+@echo off
+set userList=userlist.txt
+set outputFile=output.txt
+
+rem Clear output file
+echo Group Memberships > %outputFile%
+
+rem Loop through each user in the user list
+for /f "delims=" %%u in (%userList%) do (
+    echo Checking groups for user: %%u
+    echo %%u >> %outputFile%
+    
+    rem Use net user to check groups for each user
+    net user %%u /domain | findstr /i "Local Group Memberships" >> %outputFile%
+    
+    echo. >> %outputFile% rem Add a blank line for readability
+)
+
+echo Done! Check %outputFile% for results.
